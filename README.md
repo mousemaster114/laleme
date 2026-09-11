@@ -71,7 +71,7 @@
 **电脑安装**：
 
 ```bash
-adb install -r laleme-1.1.1.apk
+adb install -r laleme-1.1.2.apk
 ```
 
 <details>
