@@ -316,54 +316,56 @@ fun SummaryScreen(vm: PoopViewModel, onBack: () -> Unit) {
 private fun OverallCard(summary: PoopSummary) {
     val grade = summary.avgGrade
     GlassCard(modifier = Modifier.fillMaxWidth(), corner = 28.dp) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(20.dp)
         ) {
-            ScoreRing(score = summary.avgScore, color = grade.color, size = 104.dp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ScoreRing(score = summary.avgScore, color = grade.color, size = 104.dp)
 
-            Spacer(Modifier.width(18.dp))
+                Spacer(Modifier.width(18.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = grade.emoji, fontSize = 17.sp)
-                    Spacer(Modifier.width(6.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = grade.emoji, fontSize = 17.sp)
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = grade.label,
+                            style = MaterialTheme.typography.titleLarge.copy(fontSize = 19.sp),
+                            color = grade.color
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+
+                    // 次数和日均分开两行：
+                    // 挤在同一行时，窄屏上「日均」会被挤到贴边，甚至和数字撞在一起。
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        AnimatedInt(
+                            value = summary.count,
+                            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 30.sp),
+                            color = Cocoa
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "次",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = CocoaSoft,
+                            modifier = Modifier.padding(bottom = 5.dp)
+                        )
+                    }
+                    Spacer(Modifier.height(2.dp))
                     Text(
-                        text = grade.label,
-                        style = MaterialTheme.typography.titleLarge.copy(fontSize = 19.sp),
-                        color = grade.color
-                    )
-                }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = "这段时间一共拉了",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = CocoaFaint
-                )
-                Row(verticalAlignment = Alignment.Bottom) {
-                    AnimatedInt(
-                        value = summary.count,
-                        style = MaterialTheme.typography.headlineMedium.copy(fontSize = 30.sp),
-                        color = Cocoa
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = "次",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = CocoaSoft,
-                        modifier = Modifier.padding(bottom = 5.dp)
-                    )
-                    Spacer(Modifier.weight(1f))
-                    Text(
-                        text = "日均 %.2f 次".format(summary.perDay),
+                        // 写清分母，避免被理解成「平均每天只拉这么点」
+                        text = "这段时间平均每天 %.2f 次".format(summary.perDay),
                         style = MaterialTheme.typography.bodySmall,
-                        color = CocoaSoft,
-                        modifier = Modifier.padding(bottom = 6.dp)
+                        color = CocoaSoft
                     )
                 }
-                Spacer(Modifier.height(4.dp))
+            }
+
+            if (summary.count > 0) {
+                Spacer(Modifier.height(10.dp))
                 Text(
                     text = grade.advice,
                     style = MaterialTheme.typography.bodySmall,
@@ -382,7 +384,7 @@ private fun OverallCard(summary: PoopSummary) {
 private fun MetricGrid(summary: PoopSummary) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MetricCell("记录天数", "${summary.activeDays}", "天", Modifier.weight(1f))
+            MetricCell("有记录的天数", "${summary.activeDays}", "天", Modifier.weight(1f))
             MetricCell("理想成形", "${summary.healthyCount}", "次", Modifier.weight(1f))
             MetricCell("残留偏多", "${summary.messyCount}", "次", Modifier.weight(1f))
         }

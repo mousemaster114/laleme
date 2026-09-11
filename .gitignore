@@ -32,3 +32,6 @@ APK/*-debug.apk
 # 临时文件
 .git-commit-msg.txt
 .msg.txt
+
+# 真机自测截图（本地留档，不进仓库）
+.shots/
