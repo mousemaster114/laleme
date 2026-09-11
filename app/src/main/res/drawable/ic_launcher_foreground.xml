@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 自适应图标前景：奶咖色小屎山 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 底部 -->
+    <path
+        android:fillColor="#8D5524"
+        android:pathData="M30,76 C30,66 39,60 54,60 C69,60 78,66 78,76 C78,82 70,85 54,85 C38,85 30,82 30,76 Z" />
+    <!-- 中层 -->
+    <path
+        android:fillColor="#A96A2E"
+        android:pathData="M37,58 C37,49 44,44 54,44 C64,44 71,49 71,58 C71,63 65,66 54,66 C43,66 37,63 37,58 Z" />
+    <!-- 顶层 -->
+    <path
+        android:fillColor="#C4832F"
+        android:pathData="M44,41 C44,33 48,29 54,29 C60,29 64,33 64,41 C64,45 60,47 54,47 C48,47 44,45 44,41 Z" />
+    <!-- 尖尖 -->
+    <path
+        android:fillColor="#D89A46"
+        android:pathData="M54,18 C57,24 60,26 60,30 C60,34 57,36 54,36 C51,36 48,34 48,30 C48,26 51,24 54,18 Z" />
+    <!-- 高光 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.55"
+        android:pathData="M48,54 C50,50 54,48 57,48 C55,50 52,52 50,56 C49,58 47,57 48,54 Z" />
+</vector>

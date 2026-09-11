@@ -1,0 +1,5 @@
+APK/*.apk filter=lfs diff=lfs merge=lfs -text
+
+# 源码统一用 LF，避免在 Windows 上出现整文件级的换行 diff
+* text=auto eol=lf
+*.bat text eol=crlf
