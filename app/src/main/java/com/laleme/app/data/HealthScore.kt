@@ -183,9 +183,15 @@ data class PoopSummary(
 
     val healthyCount: Int get() = entries.count { it.shape == 2 || it.shape == 3 }
 
-    /** 按天聚合，用于趋势图：当天 00:00 的时间戳 -> 次数 */
+    /**
+     * 按天聚合，用于趋势图：当天 00:00（**本地时区**）的时间戳 -> 次数。
+     *
+     * 注意：不能用 `timestamp / 86400000 * 86400000` 来分天 ——
+     * 那是按 UTC 分天，在东八区会把「当天 08:00」当成分界，
+     * 于是 key 和界面上的本地日期对不上，趋势图的柱子会全部取到 0。
+     */
     val byDay: Map<Long, Int>
-        get() = entries.groupingBy { it.timestamp / DAY_MILLIS * DAY_MILLIS }.eachCount()
+        get() = entries.groupingBy { floorToDay(it.timestamp) }.eachCount()
 
     /** 最常拉屎的时间段（0-23） */
     val peakHour: Int?

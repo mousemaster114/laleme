@@ -1,10 +1,12 @@
 package com.laleme.app.ui.screens
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,9 +49,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -572,58 +579,75 @@ private fun TrendCard(summary: PoopSummary) {
             }
             Spacer(Modifier.height(16.dp))
 
-            Row(
+
+            // 用 Canvas 直接画柱状图。
+            // 之前是「Spacer(weight) + Box(weight)」按权重分配高度，
+            // 在只有 3~5dp 宽的窄柱子里实测完全不渲染（整块区域只有卡片底色）。
+            // Canvas 的几何是直接算出来的，不存在这种布局意外。
+            //
+            // 另外这里刻意不做生长动画：`byDay` 是每次重组都新建的 Map，
+            // 一旦把它放进 LaunchedEffect 的 key，动画会被无限重启、进度永远停在 0，
+            // 柱子高度被乘成 0 —— 表现同样是「趋势图什么都没有」。
+
+            Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(108.dp),
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    .height(96.dp)
             ) {
+                if (days.isEmpty()) return@Canvas
+
+                val slot = size.width / days.size
+                val gap = minOf(3.dp.toPx(), slot * 0.25f)
+                val barW = (slot - gap).coerceAtLeast(2f)
+                val zeroH = size.height * 0.06f
+                val radius = CornerRadius(barW / 2f)
+
                 days.forEachIndexed { index, day ->
                     val c = byDay[day] ?: 0
-                    val target = if (c == 0) 0.035f else (c.toFloat() / maxCount) * 0.86f + 0.14f
-                    val animated by animateFloatAsState(
-                        targetValue = target,
-                        animationSpec = spring(
-                            dampingRatio = 0.62f,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        label = "trend$index"
-                    )
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(84.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom
-                    ) {
-                        if (c > 0) {
-                            Text(
-                                text = "$c",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                                color = HoneyDeep,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Spacer(Modifier.weight((1f - animated).coerceAtLeast(0.001f)))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(animated.coerceAtLeast(0.001f))
-                                .clip(RoundedCornerShape(50))
-                                .background(
-                                    if (c == 0) {
-                                        Brush.verticalGradient(
-                                            listOf(Color(0x1A000000), Color(0x0D000000))
-                                        )
-                                    } else {
-                                        Brush.verticalGradient(
-                                            listOf(Color(0xFFFFD54F), Honey, HoneyDeep)
-                                        )
-                                    }
-                                )
+                    val left = index * slot + (slot - barW) / 2f
+                    // 线性比例：柱高严格正比于次数，1 次和 4 次的高矮差别一眼看得出来
+                    val ratio = if (maxCount <= 0) 0f else c.toFloat() / maxCount
+                    val h = (if (c == 0) zeroH else size.height * ratio).coerceIn(2f, size.height)
+                    val top = size.height - h
+
+                    if (c == 0) {
+                        // 零值基线：淡色短柱，作为对照刻度
+                        drawRoundRect(
+                            color = Color(0x26A08A68),
+                            topLeft = Offset(left, top),
+                            size = Size(barW, h),
+                            cornerRadius = radius
+                        )
+                    } else {
+                        // 有记录：橙色渐变柱
+                        drawRoundRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(Color(0xFFFFD54F), Honey, HoneyDeep),
+                                startY = top,
+                                endY = size.height
+                            ),
+                            topLeft = Offset(left, top),
+                            size = Size(barW, h),
+                            cornerRadius = radius
                         )
                     }
+                }
+            }
+
+            Spacer(Modifier.height(6.dp))
+
+            // 柱顶标次数：柱子很窄、数量级又小，光看高度不好读数
+            Row(modifier = Modifier.fillMaxWidth()) {
+                days.forEach { day ->
+                    val c = byDay[day] ?: 0
+                    Text(
+                        text = if (c > 0) "$c" else "",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                        color = HoneyDeep,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 

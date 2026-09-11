@@ -246,4 +246,53 @@ class HealthScoreTest {
         val to = ts(2025, 7, 2, 0, 10)
         assertEquals(2L, PoopSummary(from, to, emptyList()).days)
     }
+
+    /* ---------------- 趋势图的按天聚合 ---------------- */
+
+    @Test
+    fun `byDay 的 key 必须等于本地当天零点`() {
+        // 这是真机上踩到的坑：byDay 原来用 timestamp/86400000*86400000 分天，
+        // 那是按 UTC 分天，在东八区会把「当天 08:00」当成分界，
+        // 于是 key 和界面上的本地日期对不上 —— 趋势图柱子全部取到 0。
+        val t = ts(2025, 7, 10, 15, 30)
+        val sum = PoopSummary(ts(2025, 7, 1, 0, 0), ts(2025, 7, 31, 23, 59), listOf(entry(t, id = 1)))
+
+        val expected = ts(2025, 7, 10, 0, 0)
+        assertEquals("key 应当是本地当天零点", setOf(expected), sum.byDay.keys)
+        assertEquals(1, sum.byDay[expected])
+    }
+
+    @Test
+    fun `趋势图的日期序列能在 byDay 里查到次数`() {
+        // 复现趋势图的取数方式：days 序列全部由本地零点构成，去 byDay 里查
+        val day1 = ts(2025, 7, 10, 9, 0)
+        val day1b = ts(2025, 7, 10, 21, 0)
+        val day3 = ts(2025, 7, 12, 8, 0)
+        val list = listOf(
+            entry(day1, id = 1),
+            entry(day1b, id = 2),
+            entry(day3, id = 3)
+        )
+        val from = ts(2025, 7, 10, 0, 0)
+        val to = ts(2025, 7, 12, 23, 59)
+        val sum = PoopSummary(from, to, list)
+
+        // 模拟 TrendCard 里的 days 构造
+        val days = mutableListOf<Long>()
+        var d = from
+        while (d <= to) { days += d; d += PoopSummary.DAY_MILLIS }
+
+        assertEquals(3, days.size)
+        assertEquals(listOf(2, 0, 1), days.map { sum.byDay[it] ?: 0 })
+    }
+
+    @Test
+    fun `同一天的记录会聚合到同一个 key`() {
+        val list = (0..4).map { h ->
+            entry(ts(2025, 7, 10, 8 + h, 0), id = h.toLong() + 1)
+        }
+        val sum = PoopSummary(ts(2025, 7, 10, 0, 0), ts(2025, 7, 10, 23, 59), list)
+        assertEquals(1, sum.byDay.size)
+        assertEquals(5, sum.byDay.values.first())
+    }
 }
