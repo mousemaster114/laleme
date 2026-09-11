@@ -106,3 +106,24 @@ dependencies {
 tasks.withType<Test>().configureEach {
     systemProperty("robolectric.logging", "stdout")
 }
+
+/**
+ * 在 Android Studio 里跑测试时，Robolectric 需要这个 jar。
+ * 本机命令行环境下 Gradle 的 test worker 起不来（它依赖 stdin 管道，
+ * 见 README「已知限制」），所以纯逻辑测试是手工调 JUnit 跑的。
+ */
+tasks.register("dumpTestClasspath") {
+    group = "verification"
+    description = "把 debugUnitTest 的运行时 classpath 导出到 build/test-classpath.txt"
+    val outFile = layout.buildDirectory.file("test-classpath.txt")
+    val conf = configurations.named("debugUnitTestRuntimeClasspath")
+    val buildDir = layout.buildDirectory
+    doLast {
+        val list = mutableListOf<String>()
+        list += buildDir.dir("tmp/kotlin-classes/debugUnitTest").get().asFile.absolutePath
+        list += buildDir.dir("tmp/kotlin-classes/debug").get().asFile.absolutePath
+        list += conf.get().files.map { it.absolutePath }
+        outFile.get().asFile.writeText(list.joinToString("\n"))
+        println("测试 classpath 已导出：${outFile.get().asFile}（共 ${list.size} 项）")
+    }
+}
